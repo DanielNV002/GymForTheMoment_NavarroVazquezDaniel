@@ -1,31 +1,58 @@
-from _pydatetime import *
+from BBDD import BBDD
 
-from Reserva import Reserva
+# Crear una instancia de BBDD
+bbdd = BBDD()
 
 class Aparato:
-    def __init__(self, id_aparato, nombre):
+    def __init__(self, id_aparato, nombre, bbdd):
         self.id_aparato = id_aparato
         self.nombre = nombre
-        self.reservas = []  # Lista de reservas para este aparato
+        self.bbdd = bbdd  # Ahora la instancia de BBDD se pasa como un argumento.
 
-    def reservar(self, id_aparato, cliente, dia_semana, hora):
-        reservaGuardada = Reserva(id_aparato, cliente, dia_semana, hora)
-        self.reservas.append(reservaGuardada)
-        print(f"Se ha reservado el aparato {self.nombre} el {reservaGuardada.dia_semana} a las {reservaGuardada.hora} por {reservaGuardada.cliente}.")
+    @classmethod
+    def from_db(cls, row):
+        return cls(row[0], row[1])
 
-    def ver_disponibilidad(self, dia_semana):
-        for r in self.reservas:
-            if r.dia_semana == dia_semana:
-                # Convertimos la hora de inicio en un objeto datetime
-                hora_inicio = datetime.strptime(r.hora, "%H:%M")
-                # Sumamos 30 minutos
-                hora_fin = hora_inicio + timedelta(minutes=30)
-                # Formateamos la hora de inicio y fin para que se vean como HH:MM
-                hora_inicio_str = hora_inicio.strftime("%H:%M")
-                hora_fin_str = hora_fin.strftime("%H:%M")
+    def guardar(self):
+        bbdd.cursor.execute('''
+            INSERT INTO aparatos (nombre)
+            VALUES (?)
+        ''', (self.nombre,))
+        bbdd.conn.commit()
 
-                print(f"El aparato {self.nombre} no se encuentra disponible de {hora_inicio_str} a {hora_fin_str} por {r.cliente}.")
-        return f"El aparato {self.nombre} se encuentra disponible el {dia_semana}."
+    @staticmethod
+    def obtener_todos():
+        bbdd.cursor.execute('SELECT * FROM aparatos')
+        return [Aparato.from_db(row) for row in bbdd.cursor.fetchall()]
 
-    def __str__(self):
-        return f"Aparato {self.nombre} (ID: {self.id_aparato})"
+    def reservar(self, cliente, dia_semana, hora):
+        bbdd.cursor.execute('''
+            INSERT INTO reservas (id_aparato, id_cliente, dia_semana, hora)
+            VALUES (?, ?, ?, ?)
+        ''', (self.id_aparato, cliente.id_cliente, dia_semana, hora))
+        bbdd.conn.commit()
+
+    @staticmethod
+    def obtener_reservas(dia_semana):
+        bbdd.cursor.execute('''
+            SELECT reservas.hora, clientes.nombre
+            FROM reservas
+            JOIN clientes ON reservas.id_cliente = clientes.id_cliente
+            WHERE reservas.dia_semana = ?
+            ORDER BY reservas.hora
+        ''', (dia_semana,))
+        return bbdd.cursor.fetchall()
+
+    def comprobar_reserva(self, dia_semana, hora):
+        # Realizar la consulta para verificar si ya existe una reserva en ese día y hora
+        bbdd.cursor.execute('''
+            SELECT 1
+            FROM reservas
+            WHERE dia_semana = ? AND hora = ?
+        ''', (dia_semana, hora))
+
+        # Si la consulta devuelve algún resultado, significa que ya hay una reserva
+        if bbdd.cursor.fetchone():
+            return True  # Ya existe una reserva en ese día y hora
+        else:
+            return False  # No hay ninguna reserva en ese día y hora

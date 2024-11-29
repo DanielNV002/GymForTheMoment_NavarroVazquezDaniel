@@ -1,118 +1,126 @@
-# En un gimnasio desean tener una aplicación informática para llevar un control de la gestión de este.
-# El gimnasio está abierto las 24 horas del día de lunes a viernes). Este servicio es novedoso para los clientes.
-# Dispone de una serie de aparatos de entrenamiento, los cuales, son reservados para sesiones de los clientes.
-# Cada sesión tiene una duración de media hora.
-# la aplicación deberá poder generar un listado, para un determinado día de la semana (de lunes a viernes), de las horas en las que está ocupado y por qué cliente.
-# Una vez al mes se generan todos los recibos de ese mes para los clientes. Se desea poder llevar un control de qué clientes han pagado.
-# También se desea poder obtener un listado de clientes que son morosos.
-from Aparato import *
-from Clientes import *
+from Aparato import Aparato
+from BBDD import BBDD
+from Clientes import Cliente
 
+# Crear una instancia de BBDD
+bbdd = BBDD()
 
 class Gimnasio:
     def __init__(self):
-        self.clientes = []
-        self.aparatos = []
+        pass
 
     def agregar_cliente(self, cliente):
-        self.clientes.append(cliente)
+        cliente.guardar()
 
     def agregar_aparato(self, aparato):
-        self.aparatos.append(aparato)
+        aparato.guardar()
 
     def generar_recibos(self):
+        clientes = Cliente.obtener_todos()
         recibos = []
-        for cliente in self.clientes:
+        for cliente in clientes:
             recibos.append(f"Recibo para {cliente.nombre}: {'Pagado' if cliente.ha_pagado else 'No pagado'}")
         return recibos
 
     def listar_morosos(self):
-        return [cliente for cliente in self.clientes if not cliente.ha_pagado]
+        return Cliente.obtener_morosos()
+
+    def hacer_reserva(self, id_aparato, id_cliente, dia_semana, hora):
+        aparato = Aparato.obtener_todos()
+        cliente = [c for c in Cliente.obtener_todos() if c.id_cliente == id_cliente][0]
+        aparato_seleccionado = [a for a in aparato if a.id_aparato == id_aparato][0]
+        aparato_seleccionado.reservar(cliente, dia_semana, hora)
 
 
-# Crear una instancia del gimnasio
-gimnasio = Gimnasio()
-aparato = Aparato(1, "Cinta de correr")
+# Función principal
 
-# Agregar clientes a través de la instancia del gimnasio
-gimnasio.agregar_cliente(Cliente(1, "Juan Perez", True))
-gimnasio.agregar_cliente(Cliente(2, "Maria Lopez", False))
-gimnasio.agregar_cliente(Cliente(3, "Pedro Gutierrez", True))
+def menu():
+    Ap = Aparato(None, None, bbdd)
+    gimnasio = Gimnasio()
+    bbdd.crear_tablas()
+    while True:
+        print("""
+            -- Bienvenido al Gimnasio --
+            ¿Qué acción quieres realizar?
 
-gimnasio.agregar_aparato(Aparato(1, "Cinta de correr"))
-gimnasio.agregar_aparato(Aparato(2, "Bicicleta estatica"))
-gimnasio.agregar_aparato(Aparato(3, "Pesas"))
-
-aparato.reservas.append(Reserva(2, "Juan", "lunes", "09:00"))
-aparato.reservas.append(Reserva(1, "Ruben", "lunes", "12:00"))
-aparato.reservas.append(Reserva(3, "Dani", "lunes", "17:00"))
-
-while True:
-    print("""
-        -- Bienvenido al Gimnasio --
-        ¿Qué acción quieres realizar?
-
-        1. Agregar cliente
-        2. Agregar aparato
-        3. Generar recibos
-        4. Ver morosos
-        5. Hacer una reserva
-        6. Ver reservas
-        0. Salir
-        """)
-    try:
-        accion = int(input("Ingresa una acción: "))
-        if accion == 1:
-            nombre = input("Ingresa el nombre del cliente: ")
-            id_cliente = len(gimnasio.clientes) + 1
-            ha_pagado = input("¿El cliente ha pagado? (s/n): ").lower() == 's'
-            gimnasio.agregar_cliente(Cliente(id_cliente, nombre, ha_pagado))
-        elif accion == 2:
-            nombre = input("Ingresa el nombre del aparato: ")
-            id_aparato = len(gimnasio.aparatos) + 1
-            print("ID del nuevo aparato:", id_aparato)
-            gimnasio.agregar_aparato(Aparato(id_aparato, nombre))
-        elif accion == 3:
-            print("Recibos:")
-            for recibo in gimnasio.generar_recibos():
-                print(recibo)
-        elif accion == 4:
-            print("Morosos:")
-            morosos = gimnasio.listar_morosos()
-            if morosos:
-                for moroso in morosos:
-                    print(moroso.nombre)
-            else:
-                print("No hay clientes morosos.")
-        elif accion == 5:
+            1. Agregar cliente
+            2. Agregar aparato
+            3. Generar recibos
+            4. Ver morosos
+            5. Hacer una reserva
+            6. Ver reservas
+            0. Salir
+            """)
+        try:
+            accion = int(input("Ingresa una acción: "))
+            if accion == 1:
+                nombre = input("Ingresa el nombre del cliente: ")
+                ha_pagado = input("¿El cliente ha pagado? (s/n): ").lower() == 's'
+                cliente = Cliente(None, nombre, 1 if ha_pagado else 0)
+                gimnasio.agregar_cliente(cliente)
+            elif accion == 2:
+                nombre = input("Ingresa el nombre del aparato: ")
+                aparato = Ap(None, nombre)
+                gimnasio.agregar_aparato(aparato)
+            elif accion == 3:
+                print("Recibos:")
+                for recibo in gimnasio.generar_recibos():
+                    print(recibo)
+            elif accion == 4:
+                print("Morosos:")
+                morosos = gimnasio.listar_morosos()
+                if morosos:
+                    for moroso in morosos:
+                        print(moroso.nombre)
+                else:
+                    print("No hay clientes morosos.")
+            elif accion == 5:
                 # Mostrar la lista de aparatos con su ID
-            for aparato in gimnasio.aparatos:
-                print(f"Aparato ID: {aparato.id_aparato}, Nombre: {aparato.nombre}")
+                for aparato in Ap.obtener_todos():
+                    print(f"Aparato ID: {aparato.id_aparato}, Nombre: {aparato.nombre}")
 
-            # Obtener el ID del aparato a reservar
-            id_aparato = int(input("Ingresa el ID del aparato: "))
+                # Obtener el ID del aparato a reservar
+                id_aparato = int(input("Ingresa el ID del aparato: "))
 
-            # Encontrar el aparato correcto en la lista
-            aparato_seleccionado = next((a for a in gimnasio.aparatos if a.id_aparato == id_aparato), None)
+                # Mostrar la lista de clientes
+                for cliente in Cliente.obtener_todos():
+                    print(f"Cliente ID: {cliente.id_cliente}, Nombre: {cliente.nombre}")
 
-            if aparato_seleccionado:
+                # Obtener el ID del cliente
+                id_cliente = int(input("Ingresa el ID del cliente: "))
+
+                # Realizar la reserva
                 dia_semana = input("Ingresa el día de la semana (lunes, martes, miércoles, jueves, viernes): ")
-                cliente = input("Ingresa el nombre del cliente: ")
                 hora = input("Ingresa la hora (hh:mm): ")
 
-                # Reservar el aparato seleccionado
-                aparato.reservar(id_aparato, cliente, dia_semana, hora)
+                if Ap.comprobar_reserva(dia_semana, hora):
+                    print("Ya existe una reserva para ese día y hora.")
+                else:
+                    print("No hay reservas para ese día y hora. Puedes hacer la reserva.")
+                    gimnasio.hacer_reserva(id_aparato, id_cliente, dia_semana, hora)
+
+            elif accion == 6:
+                dia_semana = input("Ingresa el día de la semana (lunes, martes, miércoles, jueves, viernes): ")
+                reservas = Ap.obtener_reservas(dia_semana)
+                if reservas:
+                    for reserva in reservas:
+                        print(f"Hora: {reserva[0]}, Cliente: {reserva[1]}")
+                else:
+                    print("No hay reservas para ese día.")
+            elif accion == 0:
+                print("Gracias por utilizar el gimnasio")
+                bbdd.close()
+                break
             else:
-                print(f"No se encontró un aparato con el ID {id_aparato}.")
-        elif accion == 6:
-            dia_semana = input("Ingresa el día de la semana (lunes, martes, miércoles, jueves, viernes): ")
-            aparato.ver_disponibilidad(dia_semana)
-        elif accion == 0:
-            print("Gracias por utilizar el gimnasio")
-            break
-        else:
-            print("Opción no válida")
-    except Exception as e:
+                print("Opción no válida")
+        except Exception as e:
             print(f"Ocurrió un error: {e}")
-    finally:
-        print("\n")
+        finally:
+            print("\n")
+
+
+if __name__ == "__main__":
+    menu()
+
+# Cerrar la conexión a la base de datos al finalizar
+bbdd.conn.close()
