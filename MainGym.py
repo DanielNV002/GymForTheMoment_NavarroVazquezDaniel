@@ -128,7 +128,6 @@ def menu():
                 else:
                     gimnasio.hacer_reserva(id_aparato, id_cliente, dia_semana.capitalize(), hora)
 
-
             elif accion == 6:
                 dia_semana = input("Ingresa el día de la semana (Lunes, Martes, Miercoles, Jueves, Viernes): ")
                 reservas = Ap.obtener_reservas(dia_semana.capitalize())

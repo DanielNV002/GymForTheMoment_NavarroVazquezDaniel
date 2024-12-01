@@ -53,7 +53,7 @@ class Aparato:
             JOIN clientes AS cliente ON reservas.id_cliente = cliente.id_cliente
             WHERE reservas.dia_semana = ?
             ORDER BY hora_inicio
-        ''', dia_semana)
+        ''', (dia_semana,))
         return bbdd.cursor.fetchall()
 
     @staticmethod
