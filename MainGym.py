@@ -1,9 +1,13 @@
+import datetime
+
 from Aparato import Aparato
 from BBDD import BBDD
 from Clientes import Cliente
 
 # Crear una instancia de BBDD
 bbdd = BBDD()
+Ap = Aparato(None, None, bbdd)
+
 
 class Gimnasio:
     def __init__(self):
@@ -26,10 +30,34 @@ class Gimnasio:
         return Cliente.obtener_morosos()
 
     def hacer_reserva(self, id_aparato, id_cliente, dia_semana, hora):
-        aparato = Aparato.obtener_todos()
-        cliente = [c for c in Cliente.obtener_todos() if c.id_cliente == id_cliente][0]
-        aparato_seleccionado = [a for a in aparato if a.id_aparato == id_aparato][0]
+        aparato = Ap.obtener_todos(bbdd)
+        cliente = next((c for c in Cliente.obtener_todos() if c.id_cliente == id_cliente), None)
+        aparato_seleccionado = next((a for a in aparato if a.id_aparato == id_aparato), None)
+
+        if cliente is None:
+            print("Cliente no encontrado.")
+            return
+        if aparato_seleccionado is None:
+            print("Aparato no encontrado.")
+            return
+
+        # Verificar que no haya conflictos en la reserva
+        if Ap.comprobar_reserva(id_aparato, dia_semana, hora):
+            print("El aparato ya está reservado para ese día y hora (reserva 30 minutos mas tarde).")
+            return
+
+        # Realizar la reserva
         aparato_seleccionado.reservar(cliente, dia_semana, hora)
+        print("Reserva completada.")
+
+
+def validar_dia_hora(dia_semana, hora):
+    dias_validos = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
+    try:
+        datetime.datetime.strptime(hora, '%H:%M')
+    except ValueError:
+        return False
+    return dia_semana in dias_validos
 
 
 # Función principal
@@ -37,7 +65,9 @@ class Gimnasio:
 def menu():
     Ap = Aparato(None, None, bbdd)
     gimnasio = Gimnasio()
+    bbdd.drop_tablas()
     bbdd.crear_tablas()
+    bbdd.insertarDatos()
     while True:
         print("""
             -- Bienvenido al Gimnasio --
@@ -60,7 +90,7 @@ def menu():
                 gimnasio.agregar_cliente(cliente)
             elif accion == 2:
                 nombre = input("Ingresa el nombre del aparato: ")
-                aparato = Ap(None, nombre)
+                aparato = Aparato(None, nombre, bbdd)
                 gimnasio.agregar_aparato(aparato)
             elif accion == 3:
                 print("Recibos:")
@@ -76,7 +106,7 @@ def menu():
                     print("No hay clientes morosos.")
             elif accion == 5:
                 # Mostrar la lista de aparatos con su ID
-                for aparato in Ap.obtener_todos():
+                for aparato in Ap.obtener_todos(bbdd):
                     print(f"Aparato ID: {aparato.id_aparato}, Nombre: {aparato.nombre}")
 
                 # Obtener el ID del aparato a reservar
@@ -90,23 +120,25 @@ def menu():
                 id_cliente = int(input("Ingresa el ID del cliente: "))
 
                 # Realizar la reserva
-                dia_semana = input("Ingresa el día de la semana (lunes, martes, miércoles, jueves, viernes): ")
+                dia_semana = input("Ingresa el día de la semana (Lunes, Martes, Miercoles, Jueves, Viernes): ")
                 hora = input("Ingresa la hora (hh:mm): ")
 
-                if Ap.comprobar_reserva(dia_semana, hora):
-                    print("Ya existe una reserva para ese día y hora.")
+                if not validar_dia_hora(dia_semana.capitalize(), hora):
+                    print("El formato del día o la hora es inválido.")
                 else:
-                    print("No hay reservas para ese día y hora. Puedes hacer la reserva.")
-                    gimnasio.hacer_reserva(id_aparato, id_cliente, dia_semana, hora)
+                    gimnasio.hacer_reserva(id_aparato, id_cliente, dia_semana.capitalize(), hora)
+
 
             elif accion == 6:
-                dia_semana = input("Ingresa el día de la semana (lunes, martes, miércoles, jueves, viernes): ")
-                reservas = Ap.obtener_reservas(dia_semana)
+                dia_semana = input("Ingresa el día de la semana (Lunes, Martes, Miercoles, Jueves, Viernes): ")
+                reservas = Ap.obtener_reservas(dia_semana.capitalize())
                 if reservas:
                     for reserva in reservas:
-                        print(f"Hora: {reserva[0]}, Cliente: {reserva[1]}")
+                        hora_inicio, hora_final, cliente = reserva
+                        print(f"Hora: {hora_inicio} - {hora_final}, Cliente: {cliente}")
                 else:
                     print("No hay reservas para ese día.")
+
             elif accion == 0:
                 print("Gracias por utilizar el gimnasio")
                 bbdd.close()
