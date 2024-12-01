@@ -133,7 +133,6 @@ class BBDD:
         self.conn.commit()
 
     def close(self):
-        # Cerrar la conexión con la base de datos cuando ya no se necesite
         self.conn.close()
 
 

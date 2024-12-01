@@ -2,14 +2,13 @@ from datetime import datetime, timedelta
 
 from BBDD import BBDD
 
-# Crear una instancia de BBDD
 bbdd = BBDD()
 
 class Aparato:
     def __init__(self, id_aparato, nombre, Bd):
         self.id_aparato = id_aparato
         self.nombre = nombre
-        self.bbdd = Bd  # Ahora la instancia de BBDD se pasa como un argumento.
+        self.bbdd = Bd
 
     @classmethod
     def from_db(cls, row):
@@ -54,7 +53,7 @@ class Aparato:
             JOIN clientes AS cliente ON reservas.id_cliente = cliente.id_cliente
             WHERE reservas.dia_semana = ?
             ORDER BY hora_inicio
-        ''', (dia_semana,))  # Nota el uso de tupla con un solo elemento
+        ''', dia_semana)
         return bbdd.cursor.fetchall()
 
     @staticmethod
